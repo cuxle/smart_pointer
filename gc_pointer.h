@@ -186,9 +186,11 @@ bool Pointer<T, size>::collect(){
 		if (item.refcount == 0) {
 			if (!item.isArray) {
 	            delete item.memPtr;
+                refContainer.erase(&item)
 				return true;
 	        } else {
 	            delete [] item.memPtr;
+                refContainer.erase(&item)
 				return true;
 	        }
 		}        
