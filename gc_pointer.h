@@ -125,18 +125,26 @@ Pointer<T,size>::Pointer(T *t){                             //ok, not verified
     if (size > 0) {
         isArray = true;
         arraySize = size;
-    }
-
-    PtrDetails<T> pd(t, size);
+    } else {
+        isArray = false;
+        arraySize = 0;
+    }    
     auto itertor = findPtrInfo(t);  //possible?
     if (itertor != refContainer.end()) { // t is in the refcontainer already
         itertor->refcount++;
     } else {
     	//t is not in the refcontainer
+        PtrDetails<T> pd(t, size);
         pd.refcount++;
         refContainer.push_back(pd);
     }
     addr = t;
+    arraySize = size;
+    if (size > 0) {
+        isArray = true;
+    } else {
+        isArray = false;
+    }
     // Lab: Smart Pointer Project Lab
 
 }
@@ -155,12 +163,17 @@ Pointer<T,size>::Pointer(const Pointer &ob){            //ok, not verified
     if (itertor != refContainer.end()) {
         itertor->refcount++;
     } else {
-        PtrDetails<T> pd(ob.addr, ob.arraySize);
+        PtrDetails<T> pd(addr, size);
         pd.refcount++;
         refContainer.push_back(pd);
     }
     arraySize = ob.arraySize;
     isArray = ob.isArray;
+    if (size > 0) {
+        isArray = true;
+    } else {
+        isArray = false;
+    }
     // Lab: Smart Pointer Project Lab
 
 }
@@ -182,18 +195,20 @@ bool Pointer<T, size>::collect(){
 
     // TODO: Implement collect function
     //iterator the refContainer, if the refcounter is 0, delete the pointer
-    for (auto &item : refContainer) {
-		if (item.refcount == 0) {
-			if (!item.isArray) {
-	            delete item.memPtr;
-                refContainer.erase(&item)
-				return true;
+    int i = 0;
+    for (auto itertor = refContainer.begin(); itertor != refContainer.end(); itertor++) {
+		if (itertor->refcount == 0) {            
+			if (itertor->isArray) {
+                delete [] itertor->memPtr;                       
 	        } else {
-	            delete [] item.memPtr;
-                refContainer.erase(&item)
-				return true;
+                delete itertor->memPtr;        
 	        }
+            refContainer.erase(itertor);  
+            i++;  
 		}        
+    }
+    if (i > 0) {
+        return true;
     }
     // LAB: New and Delete Project Lab
     // Note: collect() will be called in the destructor
@@ -301,7 +316,7 @@ Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){
             if (itertor != refContainer.end()) {
                 itertor->refcount++;
             } else {
-                PtrDetails<T,size> pd(rv.addr, rv.arraySize);
+                PtrDetails<T> pd(rv.addr, rv.arraySize);
                 pd.refcount++;
                 refContainer.pop_back(pd);
             }

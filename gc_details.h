@@ -20,14 +20,13 @@ array, then arraySize contains its size */
     // If this is an array, then size specifies
     // the size of the array.
 
-    PtrDetails(T *ptr, unsigned size):refcount(0)
+    PtrDetails(T *ptr, unsigned size) : memPtr(ptr),refcount(0)
     {
         // TODO: Implement PtrDetails
         if (size > 0) {
             arraySize = size;
             isArray = true;
         }
-        memPtr = ptr;
     }
 };
 // Overloading operator== allows two class objects to be compared.
