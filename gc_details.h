@@ -20,7 +20,7 @@ array, then arraySize contains its size */
     // If this is an array, then size specifies
     // the size of the array.
 
-    PtrDetails(T *ptr, int size)
+    PtrDetails(T *ptr, int size):refcount(0)
     {
         // TODO: Implement PtrDetails
         if (size > 0) {

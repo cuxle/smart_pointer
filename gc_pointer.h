@@ -35,9 +35,11 @@ private:
     unsigned arraySize; // size of the array
     static bool first; // true when first Pointer is created
     // Return an iterator to pointer details in refContainer.
+    //what does typename mean,this seems delcare a function
     typename std::list<PtrDetails<T> >::iterator findPtrInfo(T *ptr);
 public:
     // Define an iterator type for Pointer<T>.
+    //why defined GCiterator, but not used
     typedef Iter<T> GCiterator;
     // Empty constructor
     // NOTE: templates aren't able to have prototypes with default arguments
@@ -66,6 +68,7 @@ public:
     T *operator->() { return addr; }
     // Return a reference to the object at the
     // index specified by i.
+    //shoud we check the addr is a array or not?
     T &operator[](int i){ return addr[i];}
     // Conversion function to T *.
     operator T *() { return addr; }
@@ -113,9 +116,10 @@ Pointer<T,size>::Pointer(T *t){                             //ok, not verified
     //case 0: t == nullptr 
     //case 1: t != nullptr
     // TODO: Implement Pointer constructor
-    if (nullptr == t) {
+    if (t == nullptr) {
         return;
     } 
+	//t != nullptr
     //1. construct a PtrDetails<T> pd;
     //if this pointer is an array    
     if (size > 0) {
@@ -125,9 +129,10 @@ Pointer<T,size>::Pointer(T *t){                             //ok, not verified
 
     PtrDetails<T> pd(t, size);
     auto itertor = findPtrInfo(t);  //possible?
-    if (itertor != refContainer.end()) {
+    if (itertor != refContainer.end()) { // t is in the refcontainer already
         itertor->refcount++;
     } else {
+    	//t is not in the refcontainer
         pd.refcount++;
         refContainer.push_back(pd);
     }
@@ -144,7 +149,7 @@ Pointer<T,size>::Pointer(const Pointer &ob){            //ok, not verified
     if (ob.addr == nullptr) {
         return;
     } 
-    //ob.addr ！= nullptr
+    //ob.addr !=  nullptr
     addr = ob.addr;
     auto itertor = findPtrInfo(addr);
     if (itertor != refContainer.end()) {
@@ -165,7 +170,8 @@ template <class T, int size>
 Pointer<T, size>::~Pointer(){
     
     // TODO: Implement Pointer destructor
-    findPtrInfo(addr)->refcount--;
+    if (addr && (findPtrInfo(addr) != refContainer.end()))
+    	findPtrInfo(addr)->refcount--;
     // Lab: New and Delete Project Lab
 }
 
@@ -177,11 +183,15 @@ bool Pointer<T, size>::collect(){
     // TODO: Implement collect function
     //iterator the refContainer, if the refcounter is 0, delete the pointer
     for (auto &item : refContainer) {
-        if (!item.isArray) {
-            delete item.memPtr;
-        } else {
-            delete [] item.memPtr;
-        }
+		if (item.refcount == 0) {
+			if (!item.isArray) {
+	            delete item.memPtr;
+				return true;
+	        } else {
+	            delete [] item.memPtr;
+				return true;
+	        }
+		}        
     }
     // LAB: New and Delete Project Lab
     // Note: collect() will be called in the destructor
@@ -194,31 +204,61 @@ T *Pointer<T, size>::operator=(T *t){   //ok, not verified
 
     // TODO: Implement operator==
     //t is nullptr? addr is nullptr?
+    addr = t;
+	arraySize = size;
+	if (size > 0) {
+		isArray = true;
+	}
     if (t == nullptr && addr == nullptr) {
-        return *this;
+        return addr;
     } else if (t == nullptr && addr != nullptr) {
         auto itertor = findPtrInfo(addr); 
         if (itertor != refContainer.end()) {
             itertor->refcount--;
         }
-        addr = t;
-        arraySize = 0;
-        isArray = false;
+		addr = t;
+		arraySize = size;
+		if (size > 0) {
+			isArray = true;
+		}
+		return addr;
     }else if(t != nullptr && addr == nullptr) {
-        PtrDetails<T> pd(t, size);
-        pd.refcount++;
-        refContainer.push_back(pd);
-        addr = t;
-        return *this;
+    	//1. find t is in the refcontainer or not
+    	auto itertor = findPtrInfo(t);
+		if (itertor != refContainer.end()) {
+			itertor->refcount++;
+		} else {
+			PtrDetails<T> pd(t, size);
+			pd.refcount++;
+			refContainer.push_back(pd);
+		}    
+		addr = t;
+		arraySize = size;
+		if (size > 0) {
+			isArray = true;
+		}
+		return addr;
     } else if(t != nullptr && addr != nullptr) {
         auto itertor = findPtrInfo(addr);
         if (itertor != refContainer.end()) {
             itertor->refcount--;
         }
-        addr = t;
-        PtrDetails<T> pd(t, size);
-        pd.refcount++;
-        refContainer.push_back(pd);
+
+		auto itertor_t = findPtrInfo(t);
+		if (itertor_t != refContainer.end()) {
+			itertor_t->refcount++;
+			return addr;
+		} else {
+			PtrDetails<T> pd(t, size);
+	        pd.refcount++;
+	        refContainer.push_back(pd);
+		} 
+		addr = t;
+		arraySize = size;
+		if (size > 0) {
+			isArray = true;
+		}
+		return addr;
     }
     // LAB: Smart Pointer Project Lab
 
@@ -241,31 +281,43 @@ Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){
         } else {
             //addr != nullptr
             auto itertor = findPtrInfo(addr);
-            if (itertor) {
+            if (itertor != refContainer.end()) {
                 itertor->refcount--;
             }
             addr = rv.addr;
             arraySize = rv.arraySize;
             isArray = rv.isArray;
+			return *this;
         }
     } else {
+    //rv.addr != nullptr
         if (addr == nullptr) {
             addr = rv.addr;
             arraySize = rv.arraySize;
             isArray = rv.isArray;
             auto itertor = findPtrInfo(addr);
-            if (itertor) {
+            if (itertor != refContainer.end()) {
                 itertor->refcount++;
             } else {
-                PtrDetails<T> pd(rv.addr, rv.arraySize);
+                PtrDetails<T,size> pd(rv.addr, rv.arraySize);
                 pd.refcount++;
                 refContainer.pop_back(pd);
             }
+			return *this;
         } else {
             auto itertor = findPtrInfo(addr);
-            if (itertor) {
+            if (itertor != refContainer.end()) {
                 itertor->refcount--;
             }
+			addr = rv.addr;
+            arraySize = rv.arraySize;
+            isArray = rv.isArray;
+
+			auto itertor_rv = findPtrInfo(rv->addr);
+			if (itertor_rv != refContainer.end()) {
+				itertor_rv->refcounter++;
+				return *this;
+			}
             PtrDetails<T> pd(rv.addr, rv.arraySize);
             pd.refcount++;
             refContainer.pop_back(pd);
