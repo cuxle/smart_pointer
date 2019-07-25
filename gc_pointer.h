@@ -168,10 +168,11 @@ Pointer<T, size>::~Pointer(){
     // TODO: Implement Pointer destructor
     if (addr != nullptr) {
         auto itertor = findPtrInfo(addr);
-        if (itertor != refContainer.end()) {
+        if (itertor != refContainer.end() && itertor->refcount > 0) {
             itertor->refcount--;
         }
     }
+    collect();
     // Lab: New and Delete Project Lab
 }
 
@@ -183,14 +184,17 @@ bool Pointer<T, size>::collect(){
     // TODO: Implement collect function
     //iterator the refContainer, if the refcounter is 0, delete the pointer
     int i = 0;
-    for (auto itertor = refContainer.begin(); itertor != refContainer.end(); itertor++) {
-		if (itertor->refcount == 0) {            
-			if (itertor->isArray && itertor->arraySize > 0) {
-                delete [] itertor->memPtr;                       
+    typename std::list<PtrDetails<T>>::iterator p;
+    for (p = refContainer.begin(); p != refContainer.end(); p++) {
+		if (p->refcount == 0) {            
+            refContainer.remove(*p);    
+			if (p->isArray) {
+                delete [] p->memPtr;                       
 	        } else {
-                delete itertor->memPtr;        
-	        }
+                delete p->memPtr;        
+	        }            
             i++;  
+            p--;
 		}        
     }
     if (i > 0) {
